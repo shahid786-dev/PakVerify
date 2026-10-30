@@ -1,0 +1,11 @@
+# Full AI stack for Docker / local machines (too large for Vercel Functions).
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart
+opencv-python-headless==4.10.0.84
+deepface
+mediapipe
+tensorflow
+numpy
+requests
+Pillow

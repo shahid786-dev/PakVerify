@@ -5,10 +5,10 @@ Endpoints:
   POST /api/ai/liveness/      → Liveness only
   GET  /health                → Health check
 """
+import os
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-
 from matching import verify_faces
 from liveness import check_liveness
 
@@ -18,10 +18,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Comma-separated list of allowed origins; "*" (default) keeps the old local behaviour.
+_origins = [o.strip() for o in os.environ.get("AI_CORS_ORIGINS", "*").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials=_origins != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -82,4 +85,5 @@ async def liveness_only(
 
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

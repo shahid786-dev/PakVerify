@@ -1,10 +1,9 @@
+# Lightweight AI service (what Vercel installs): liveness check via OpenCV.
+# Heavy models (DeepFace, TensorFlow, MediaPipe) are in requirements-full.txt,
+# which the Docker image installs; the code falls back automatically without them.
 fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
 python-multipart
-opencv-python-headless==4.10.0.84
-deepface
-mediapipe
-tensorflow
+opencv-python-headless
 numpy
-requests
 Pillow
+requests
