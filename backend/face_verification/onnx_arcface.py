@@ -15,7 +15,8 @@ own implementation, so embeddings are compatible with the existing
 
 Models are loaded from FACE_MODEL_DIR (default: ~/.insightface/models/buffalo_l
 if present, else /tmp/pakverify_models) and downloaded on first use from
-FACE_MODEL_BASE_URL when missing.
+FACE_MODEL_BASE_URL when missing. On Vercel they are kept in memory (the
+function's /tmp is too small for the 191 MB of models).
 """
 
 import logging
@@ -50,23 +51,47 @@ def _model_dir() -> str:
     return '/tmp/pakverify_models'
 
 
-def _ensure_file(directory: str, name: str) -> str:
-    path = os.path.join(directory, name)
-    if os.path.exists(path) and os.path.getsize(path) > 1024:
-        return path
-    os.makedirs(directory, exist_ok=True)
+def _download(name: str) -> bytes:
     base = os.environ.get('FACE_MODEL_BASE_URL', DEFAULT_BASE_URL).rstrip('/')
     url = f'{base}/{name}'
-    tmp = path + '.part'
     logger.info('Downloading face model %s', url)
-    with urllib.request.urlopen(url, timeout=60) as resp, open(tmp, 'wb') as out:
+    buf = bytearray()
+    with urllib.request.urlopen(url, timeout=60) as resp:
         while True:
             chunk = resp.read(1 << 20)
             if not chunk:
                 break
-            out.write(chunk)
-    os.replace(tmp, path)
-    return path
+            buf.extend(chunk)
+    return bytes(buf)
+
+
+def _model_source(directory: str, name: str):
+    """
+    Return a local file path when the model is cached on disk, otherwise the
+    model bytes. Serverless platforms (Vercel) have a small /tmp, so models are
+    only cached to disk when FACE_MODEL_CACHE is not "false" and the write works;
+    otherwise they stay in memory for the life of the function instance.
+    """
+    path = os.path.join(directory, name)
+    if os.path.exists(path) and os.path.getsize(path) > 1024:
+        return path
+    data = _download(name)
+    cache = os.environ.get('FACE_MODEL_CACHE', 'false' if os.environ.get('VERCEL') else 'true').lower() == 'true'
+    if cache:
+        try:
+            os.makedirs(directory, exist_ok=True)
+            tmp = path + '.part'
+            with open(tmp, 'wb') as out:
+                out.write(data)
+            os.replace(tmp, path)
+            return path
+        except OSError as exc:
+            logger.warning('Could not cache face model %s (%s); keeping it in memory.', name, exc)
+            try:
+                os.remove(path + '.part')
+            except OSError:
+                pass
+    return data
 
 
 def available() -> bool:
@@ -219,11 +244,11 @@ def _load():
         if _models is None:
             import onnxruntime as ort
             directory = _model_dir()
-            det_path = _ensure_file(directory, DET_MODEL)
-            rec_path = _ensure_file(directory, REC_MODEL)
             opts = ort.SessionOptions()
             opts.log_severity_level = 3
-            _models = (_SCRFD(det_path, opts), _ArcFace(rec_path, opts))
+            det = _SCRFD(_model_source(directory, DET_MODEL), opts)
+            rec = _ArcFace(_model_source(directory, REC_MODEL), opts)
+            _models = (det, rec)
             logger.info('ONNX ArcFace (buffalo_l) loaded from %s', directory)
     return _models
 
