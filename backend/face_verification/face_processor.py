@@ -204,6 +204,51 @@ def _extract_insightface(bgr_image: np.ndarray) -> np.ndarray:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Lightweight ONNX ArcFace extraction (same buffalo_l models, no insightface pkg)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _extract_onnx_arcface(bgr_image: np.ndarray) -> np.ndarray:
+    """
+    Same detector + ArcFace model as InsightFace buffalo_l, run directly with
+    onnxruntime (used where the full insightface package cannot be installed,
+    e.g. Vercel). Raises ImportError when onnxruntime is not installed.
+    """
+    from . import onnx_arcface
+    if not onnx_arcface.available():
+        raise ImportError('onnxruntime not available')
+
+    faces = onnx_arcface.get_faces(bgr_image)
+    if len(faces) == 0:
+        raise NoFaceDetectedError()
+    if len(faces) > 1:
+        raise MultipleFacesDetectedError(
+            f'{len(faces)} faces detected in the image. Only one face is allowed.'
+        )
+
+    x1, y1, x2, y2 = faces[0].bbox.astype(int)
+    face_w, face_h = x2 - x1, y2 - y1
+    if face_w < MIN_FACE_SIZE or face_h < MIN_FACE_SIZE:
+        raise PoorImageQualityError(
+            f'Detected face is too small ({face_w}×{face_h}px). '
+            f'Move closer to the camera (minimum {MIN_FACE_SIZE}px).'
+        )
+    return faces[0].embedding
+
+
+def _extract_arcface_any(bgr_image: np.ndarray):
+    """InsightFace package → ONNX ArcFace → DeepFace, returning (embedding, model_used)."""
+    try:
+        return _extract_insightface(bgr_image), 'InsightFace-ArcFace'
+    except ImportError:
+        pass
+    try:
+        return _extract_onnx_arcface(bgr_image), 'InsightFace-ArcFace (ONNX Runtime)'
+    except ImportError:
+        pass
+    return _extract_deepface(bgr_image), 'DeepFace-Facenet512'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # DeepFace fallback extraction
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -287,13 +332,8 @@ def extract_embedding_from_bytes(
         if not ok:
             raise PoorImageQualityError(reason)
 
-    # Try InsightFace first; fall back to DeepFace
-    model_used = 'InsightFace-ArcFace'
-    try:
-        embedding = _extract_insightface(bgr)
-    except ImportError:
-        model_used = 'DeepFace-Facenet512'
-        embedding = _extract_deepface(bgr)
+    # InsightFace package → lightweight ONNX ArcFace → DeepFace
+    embedding, model_used = _extract_arcface_any(bgr)
 
     metadata = {
         'model_used': model_used,
@@ -324,12 +364,7 @@ def extract_embedding_from_path(
         if not ok:
             raise PoorImageQualityError(reason)
 
-    model_used = 'InsightFace-ArcFace'
-    try:
-        embedding = _extract_insightface(bgr)
-    except ImportError:
-        model_used = 'DeepFace-Facenet512'
-        embedding = _extract_deepface(bgr)
+    embedding, model_used = _extract_arcface_any(bgr)
 
     metadata = {
         'model_used': model_used,
@@ -344,6 +379,9 @@ def get_model_name() -> str:
     app = _get_face_app()
     if app is not None:
         return f'InsightFace-{_MODEL_NAME}'
+    from . import onnx_arcface
+    if onnx_arcface.available():
+        return f'InsightFace-{_MODEL_NAME} (ONNX Runtime)'
     try:
         from deepface import DeepFace  # noqa: F401
         return 'DeepFace-Facenet512'
