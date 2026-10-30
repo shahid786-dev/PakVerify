@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 REGISTRY_ABI = [
     {
+        'type': 'function', 'name': 'owner', 'stateMutability': 'view',
+        'inputs': [], 'outputs': [{'name': '', 'type': 'address'}],
+    },
+    {
         'type': 'function', 'name': 'anchorCertificate', 'stateMutability': 'nonpayable',
         'inputs': [
             {'name': 'certificateHash', 'type': 'bytes32'},
@@ -60,6 +64,25 @@ def public_config() -> dict:
         'contract_address': settings.ETH_CONTRACT_ADDRESS or None,
         'explorer_url': settings.ETH_EXPLORER_URL,
     }
+
+
+def signer_status() -> dict:
+    """
+    Public diagnostics: the server wallet ADDRESS derived from ETH_PRIVATE_KEY
+    (never the key) and whether it is the contract owner allowed to anchor.
+    """
+    status = {'signer_address': None, 'contract_owner': None, 'signer_is_owner': None}
+    if not is_enabled():
+        return status
+    try:
+        w3, contract = _web3()
+        signer = w3.eth.account.from_key(settings.ETH_PRIVATE_KEY).address
+        owner = contract.functions.owner().call()
+        status.update(signer_address=signer, contract_owner=owner,
+                      signer_is_owner=signer.lower() == str(owner).lower())
+    except Exception as exc:
+        status['error'] = type(exc).__name__
+    return status
 
 
 def _web3():

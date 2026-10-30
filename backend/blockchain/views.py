@@ -84,7 +84,10 @@ class EthereumConfigView(APIView):
 
     def get(self, request):
         from . import ethereum
-        return Response(ethereum.public_config())
+        data = ethereum.public_config()
+        if request.query_params.get('check') == '1':
+            data.update(ethereum.signer_status())
+        return Response(data)
 
 
 class EthereumCertificateAnchorView(APIView):
