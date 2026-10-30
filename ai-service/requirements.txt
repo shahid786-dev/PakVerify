@@ -3,7 +3,7 @@
 # which the Docker image installs; the code falls back automatically without them.
 fastapi>=0.111.0
 python-multipart
-opencv-python-headless
+opencv-python-headless==4.10.0.84   # OpenCV 5 removed CascadeClassifier used by liveness
 numpy
 Pillow
 requests

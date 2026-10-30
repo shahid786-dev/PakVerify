@@ -13,7 +13,7 @@ requests
 qrcode
 Pillow
 numpy
-opencv-python-headless   # face detection & image I/O (headless for server)
+opencv-python-headless==4.10.0.84   # face detection & image I/O (headless for server)
 onnxruntime              # ArcFace face matching without the full insightface package
 vercel                   # Vercel Blob storage (only used when BLOB_READ_WRITE_TOKEN is set)
 web3                     # optional Ethereum anchoring (only used when ETH_* vars are set)
