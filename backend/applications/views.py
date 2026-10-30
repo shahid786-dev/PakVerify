@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.http import FileResponse, HttpResponse
 from django.db.models import Count, Sum, Q
+from django.db.models.functions import ExtractMonth
 import requests, datetime, io, uuid, qrcode
 import json
 import logging
@@ -997,13 +998,14 @@ class AuthorityAnalyticsView(APIView):
         revenue   = Challan.objects.filter(status='PAID').aggregate(t=Sum('amount'))['t'] or 0
         rate      = round((completed / (completed + rejected) * 100) if (completed + rejected) > 0 else 100.0, 1)
 
-        monthly   = Application.objects.extra(
-            select={'month': "strftime('%m', submitted_at)"}
+        # Database-independent month grouping (strftime() only exists in SQLite).
+        monthly   = Application.objects.annotate(
+            month=ExtractMonth('submitted_at')
         ).values('month').annotate(count=Count('id')).order_by('month')
         month_map = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
                      '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'}
-        trends    = [{'name': month_map.get(m['month'], m['month']), 'applications': m['count']}
-                     for m in monthly] or [{'name':'Aug','applications': total or 1}]
+        trends    = [{'name': month_map.get(f"{m['month']:02d}", str(m['month'])), 'applications': m['count']}
+                     for m in monthly if m['month'] is not None] or [{'name':'Aug','applications': total or 1}]
 
         districts = Application.objects.values('applicant__district').annotate(
             count=Count('id')).order_by('-count')
