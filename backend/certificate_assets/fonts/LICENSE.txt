@@ -1,0 +1,6 @@
+Poppins (Regular, Light, Medium, Bold)
+Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+
+These font files are licensed under the SIL Open Font License, Version 1.1.
+The full license text is available at https://openfontlicense.org
+They are bundled unmodified for embedding in generated certificate PDFs.

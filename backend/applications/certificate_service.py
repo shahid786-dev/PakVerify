@@ -110,6 +110,19 @@ def _generate_verification_qr_png(verification_url):
 
 
 def render_certificate_pdf(template_path, values, verification_url):
+    """
+    Render the certificate PDF.
+
+    Default: the vector PakVerify design (applications/certificate_design.py).
+    Set CERTIFICATE_STYLE=legacy to use the old image template instead.
+    """
+    if os.environ.get('CERTIFICATE_STYLE', 'modern').lower() != 'legacy':
+        from applications.certificate_design import render_certificate
+        return render_certificate(values, verification_url)
+    return render_legacy_certificate_pdf(template_path, values, verification_url)
+
+
+def render_legacy_certificate_pdf(template_path, values, verification_url):
     """Compose dynamic values and a QR over the original fixed-size template."""
     with Image.open(template_path) as template:
         template_width, template_height = template.size
@@ -696,6 +709,8 @@ class CertificateService:
                         'issue_date': timezone.localdate(),
                         'valid_until': cert.validity_expiry,
                         'status': 'VERIFIED',
+                        'application_type': locked_application.application_type,
+                        'tracking_id': locked_application.tracking_id,
                     },
                     verification_url,
                 )
