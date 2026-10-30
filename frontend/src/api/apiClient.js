@@ -141,6 +141,8 @@ export const blockchainAPI = {
   blocks:        () => API.get('/api/blockchain/blocks/'),
   verify:        () => API.get('/api/blockchain/verify/'),
   recordHistory: (id) => API.get(`/api/blockchain/record/${id}/`),
+  ethereumConfig:      ()     => API.get('/api/blockchain/ethereum/config/'),
+  ethereumCertificate: (num)  => API.get(`/api/blockchain/ethereum/certificate/${encodeURIComponent(num)}/`),
 };
 
 // ─── Notifications ─────────────────────────────────────────────

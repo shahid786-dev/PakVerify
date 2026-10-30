@@ -1,0 +1,8 @@
+# Heavy face-recognition models. Too large for Vercel Functions (500 MB limit),
+# so they are installed separately: Docker / local machine / a GPU or VM host.
+-r requirements.txt
+insightface              # ArcFace pre-trained model (primary)
+onnxruntime              # ONNX runtime for InsightFace inference
+
+# Optional fallback (install if InsightFace fails on your platform)
+# deepface               # DeepFace fallback (requires: pip install deepface tf-keras)

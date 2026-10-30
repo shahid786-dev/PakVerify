@@ -58,3 +58,34 @@ class BlockchainBlock(models.Model):
 
     def __str__(self):
         return f"Block #{self.block_index} [{self.action_type}] — {self.current_hash[:16]}…"
+
+
+class EthereumAnchor(models.Model):
+    """
+    Optional on-chain anchor of a certificate-issuance ledger block.
+
+    Created only when ETH_RPC_URL / ETH_CONTRACT_ADDRESS / ETH_PRIVATE_KEY are
+    configured. Stores no PII — only hashes and the transaction reference.
+    """
+
+    STATUS_CHOICES = (
+        ('SUBMITTED', 'Submitted'),
+        ('FAILED', 'Failed'),
+    )
+
+    certificate_number = models.CharField(max_length=30, db_index=True)
+    certificate_hash   = models.CharField(max_length=64, db_index=True)
+    ledger_block_index = models.IntegerField()
+    ledger_block_hash  = models.CharField(max_length=64)
+    chain_id           = models.IntegerField()
+    contract_address   = models.CharField(max_length=42)
+    tx_hash            = models.CharField(max_length=66, blank=True)
+    status             = models.CharField(max_length=12, choices=STATUS_CHOICES)
+    error              = models.TextField(blank=True)
+    created_at         = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.certificate_number} → {self.tx_hash or self.status}"

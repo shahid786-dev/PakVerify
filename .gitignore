@@ -38,3 +38,11 @@ media/
 data/id-card/images/
 certificates/generated/
 admin_credentials.md
+
+# Secrets
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+.vercel

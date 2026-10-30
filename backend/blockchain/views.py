@@ -73,3 +73,60 @@ class BlockchainRecordHistoryView(APIView):
         blocks = BlockchainService.get_record_history(record_id)
         serializer = BlockchainBlockSerializer(blocks, many=True)
         return Response({'count': blocks.count(), 'blocks': serializer.data})
+
+
+# ── Optional Ethereum anchoring (public, read-only) ─────────────────────────
+
+class EthereumConfigView(APIView):
+    """Public: tells the frontend whether on-chain verification is available."""
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        from . import ethereum
+        return Response(ethereum.public_config())
+
+
+class EthereumCertificateAnchorView(APIView):
+    """
+    Public: on-chain anchor details for a certificate number.
+    Exposes only hashes and the transaction reference — no personal data.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def get(self, request, certificate_number):
+        from . import ethereum
+        from .models import EthereumAnchor
+        from applications.models import Certificate
+
+        cert = Certificate.objects.filter(certificate_number=certificate_number).first()
+        if cert is None:
+            return Response({'error': 'Certificate not found.'}, status=404)
+
+        config = ethereum.public_config()
+        anchor = (
+            EthereumAnchor.objects.filter(certificate_number=certificate_number, status='SUBMITTED').first()
+            or EthereumAnchor.objects.filter(certificate_number=certificate_number).first()
+        )
+        payload = {
+            **config,
+            'certificate_number': certificate_number,
+            'certificate_hash': cert.certificate_hash,
+            'anchor': None,
+            'onchain': None,
+        }
+        if anchor:
+            payload['anchor'] = {
+                'status': anchor.status,
+                'tx_hash': anchor.tx_hash or None,
+                'tx_url': f"{config['explorer_url'].rstrip('/')}/tx/{anchor.tx_hash}" if anchor.tx_hash else None,
+                'ledger_block_index': anchor.ledger_block_index,
+                'ledger_block_hash': anchor.ledger_block_hash,
+                'chain_id': anchor.chain_id,
+                'contract_address': anchor.contract_address,
+                'created_at': anchor.created_at.isoformat(),
+            }
+        if request.query_params.get('check') == '1' and cert.certificate_hash:
+            payload['onchain'] = ethereum.read_onchain(cert.certificate_hash)
+        return Response(payload)

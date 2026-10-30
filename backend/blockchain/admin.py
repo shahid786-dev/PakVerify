@@ -24,3 +24,14 @@ class BlockchainBlockAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False   # immutable ledger
+
+
+from .models import EthereumAnchor  # noqa: E402
+
+
+@admin.register(EthereumAnchor)
+class EthereumAnchorAdmin(admin.ModelAdmin):
+    list_display = ('certificate_number', 'status', 'tx_hash', 'chain_id', 'created_at')
+    list_filter = ('status', 'chain_id')
+    search_fields = ('certificate_number', 'certificate_hash', 'tx_hash')
+    readonly_fields = [f.name for f in EthereumAnchor._meta.fields]

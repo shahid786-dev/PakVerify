@@ -129,8 +129,9 @@ class Command(BaseCommand):
         media_nadra_dir = os.path.join(settings.MEDIA_ROOT, 'nadra_faces')
         os.makedirs(media_nadra_dir, exist_ok=True)
 
-     dataset_dir = str(settings.BASE_DIR.parent / 'data' / 'id-card' / 'images')
-        dataset_images = sorted([f for f in os.listdir(dataset_dir) if f.endswith('.png') or f.endswith('.jpg')])
+        dataset_dir = str(settings.BASE_DIR.parent / 'data' / 'id-card' / 'images')
+        # The image dataset is optional (it is not committed to the repo).
+        dataset_images = [] if not os.path.isdir(dataset_dir) else sorted([f for f in os.listdir(dataset_dir) if f.endswith('.png') or f.endswith('.jpg')])
 
         for idx, data in enumerate(DUMMY_RECORDS):
             obj, created = NADRARecord.objects.get_or_create(

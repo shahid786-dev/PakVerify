@@ -1,20 +1,18 @@
+# Core web backend (this file is what Vercel installs).
 Django>=5.0
 djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
 psycopg2-binary
+dj-database-url
+whitenoise
 reportlab
 drf-spectacular
 openai
 requests
 qrcode
-
-# ── AI Face Verification ─────────────────────────────────────────────────────
+Pillow
+numpy
 opencv-python-headless   # face detection & image I/O (headless for server)
-numpy                    # vectorised cosine similarity
-Pillow                   # image preprocessing
-insightface              # ArcFace pre-trained model (primary)
-onnxruntime              # ONNX runtime for InsightFace inference
-
-# Optional fallback (install if InsightFace fails on your platform)
-# deepface               # DeepFace fallback (requires: pip install deepface tf-keras)
+vercel                   # Vercel Blob storage (only used when BLOB_READ_WRITE_TOKEN is set)
+web3                     # optional Ethereum anchoring (only used when ETH_* vars are set)

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Download, QrCode, Shield, CheckCircle, Printer, AlertCircle, FileText } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
+import EthereumVerification from '../components/EthereumVerification';
 import { certAPI, applicationAPI } from '../api/apiClient';
 
 export default function DigitalCertificatePage() {
@@ -310,6 +311,13 @@ export default function DigitalCertificatePage() {
           </div>
         </div>
       </div>
+
+      {/* Optional public on-chain check (shown only when Ethereum anchoring is configured) */}
+      {(certNumber || cert?.certificate_number) && (
+        <div className="max-w-2xl mx-auto mb-10 print:hidden">
+          <EthereumVerification certNumber={certNumber || cert.certificate_number} />
+        </div>
+      )}
     </DashboardLayout>
   );
 }

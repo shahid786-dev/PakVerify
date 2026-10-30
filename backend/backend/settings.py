@@ -21,6 +21,19 @@ ALLOWED_HOSTS = [
     ).split(',') if host
 ]
 
+# ── Vercel deployment support ────────────────────────────────────────────────
+# Vercel sets VERCEL=1 inside its build and runtime. Nothing below changes
+# local or Docker behaviour.
+ON_VERCEL = bool(os.environ.get('VERCEL'))
+if ON_VERCEL and '.vercel.app' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.vercel.app')
+
+CSRF_TRUSTED_ORIGINS = [
+    origin for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if origin
+]
+# Vercel terminates TLS before the request reaches Django.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -51,6 +64,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', # CORS must be near the top
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # serves admin/DRF static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -84,7 +98,19 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database Configuration: SQLite dev fallback, PostgreSQL prod
 DB_TYPE = os.environ.get('DB_TYPE', 'sqlite')
 
-if DB_TYPE == 'postgresql' or os.environ.get('POSTGRES_DB'):
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+
+if DATABASE_URL:
+    # Neon / any hosted PostgreSQL: a single connection URL.
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', '0')),
+            ssl_require=os.environ.get('DB_SSL_REQUIRE', 'true').lower() == 'true',
+        )
+    }
+elif DB_TYPE == 'postgresql' or os.environ.get('POSTGRES_DB'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -128,6 +154,20 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Serve static files from the installed apps without a collectstatic step.
+WHITENOISE_USE_FINDERS = True
+
+# File storage: local disk by default; Vercel Blob when a token is configured.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+}
+if os.environ.get('BLOB_READ_WRITE_TOKEN'):
+    STORAGES['default'] = {'BACKEND': 'backend.storage_backends.VercelBlobStorage'}
+elif ON_VERCEL:
+    # Read-only filesystem fallback: files only live for the function's lifetime.
+    MEDIA_ROOT = Path('/tmp/media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -213,6 +253,16 @@ LOGGING = {
         },
     },
 }
+
+# ── Optional Ethereum anchoring (MetaMask / Sepolia) ─────────────────────
+# When all three are set, certificate-issuance ledger blocks are also anchored
+# on an EVM chain through the PakVerifyRegistry contract (contracts/).
+# Leave them empty to keep the existing database-only ledger behaviour.
+ETH_RPC_URL = os.environ.get('ETH_RPC_URL', '')
+ETH_CONTRACT_ADDRESS = os.environ.get('ETH_CONTRACT_ADDRESS', '')
+ETH_PRIVATE_KEY = os.environ.get('ETH_PRIVATE_KEY', '')
+ETH_CHAIN_ID = int(os.environ.get('ETH_CHAIN_ID', '11155111'))  # Sepolia
+ETH_EXPLORER_URL = os.environ.get('ETH_EXPLORER_URL', 'https://sepolia.etherscan.io')
 
 # ── Certificate Generation Settings ──────────────────────────────────────
 CERTIFICATE_VALIDITY_DAYS = 180

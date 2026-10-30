@@ -669,6 +669,11 @@ class CertificateService:
                     settings.BASE_DIR.parent, 'certificates', 'templates', 'Certificate_Template.jfif'
                 )
                 if not os.path.exists(template_path):
+                    # Copy bundled inside backend/ (used when only backend/ is deployed, e.g. Vercel).
+                    template_path = os.path.join(
+                        settings.BASE_DIR, 'certificate_assets', 'Certificate_Template.jfif'
+                    )
+                if not os.path.exists(template_path):
                     template_path = os.path.join(
                         settings.BASE_DIR.parent, 'src', 'assets', 'Police verification Certificate.png'
                     )
@@ -720,6 +725,14 @@ class CertificateService:
                     raise RuntimeError('Certificate issuance audit record could not be created.')
                 cert.blockchain_transaction_hash = bc_block.current_hash
                 cert.save(update_fields=['blockchain_transaction_hash', 'updated_at'])
+
+                # Optional public anchor on Ethereum (no-op unless ETH_* settings are configured).
+                from blockchain import ethereum as eth_anchor
+                if eth_anchor.is_enabled():
+                    _cert_number, _cert_hash, _block = cert.certificate_number, cert_hash, bc_block
+                    transaction.on_commit(
+                        lambda: eth_anchor.anchor_certificate(_cert_number, _cert_hash, _block)
+                    )
 
                 locked_application.status = 'COMPLETED'
                 locked_application.save(update_fields=['status', 'updated_at'])

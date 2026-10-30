@@ -17,3 +17,11 @@ docs/           Project documentation when added
 
 - Use `START_ALL.bat` for the local frontend, backend, and AI service launcher.
 - Use `docker-compose.yml` to run the containerized services.
+## Live Deployment
+
+- Frontend: https://pakverify-ten.vercel.app
+- Backend API (Django, Swagger at `/api/docs/`): Vercel project `pakverify-api`
+- Database: Neon PostgreSQL
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for environment variables, migrations,
+the optional Ethereum/MetaMask anchoring and hosting the face-recognition service.
