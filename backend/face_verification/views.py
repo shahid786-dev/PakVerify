@@ -32,6 +32,7 @@ from .serializers import (
 )
 from .service import FaceVerificationService, check_liveness_with_ai
 from .exceptions import LivenessServiceError
+from . import active_liveness
 
 logger = logging.getLogger('face_verification')
 
@@ -42,6 +43,76 @@ def _get_client_ip(request) -> str:
     if x_forwarded:
         return x_forwarded.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+
+def run_live_checks(request):
+    """
+    Active (head-turn) liveness, then the AI-service passive check on the CENTER
+    frame. Returns (center_image_bytes, liveness_dict, error_response_or_None).
+    Shared by both face verification endpoints so no path skips the head-turn test.
+    """
+    try:
+        active = active_liveness.run_active_liveness(request, request.user)
+    except active_liveness.ActiveLivenessError as exc:
+        return None, None, Response(
+            {'success': False, 'error': str(exc), 'liveness_reason': 'INVALID_CHALLENGE'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as exc:
+        logger.error('Active liveness unavailable: %s', exc)
+        return None, None, Response(
+            {'success': False, 'error': 'Liveness service is unavailable. Please try again shortly.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    if not active['verified']:
+        return None, None, Response({
+            'success': False,
+            'error': f"Liveness verification failed. {active['message']}",
+            'liveness_reason': active['reason'],
+            'liveness_score': active['liveness_score'],
+            'anti_spoofing': active['anti_spoofing'],
+            'liveness_metrics': active['metrics'],
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    image_bytes = active['center_bytes']
+    try:
+        passive = check_liveness_with_ai(image_bytes)
+    except LivenessServiceError as exc:
+        return None, None, Response({'success': False, 'error': str(exc)}, status=503)
+
+    if not passive['verified']:
+        return None, None, Response({
+            'success': False,
+            'error': 'Liveness verification failed. Please capture a live image.',
+            'liveness_reason': 'PASSIVE_CHECK_FAILED',
+            'liveness_score': passive['liveness_score'],
+            'anti_spoofing': passive['anti_spoofing'],
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    liveness = {
+        'verified': True,
+        'liveness_score': round(min(active['liveness_score'], passive['liveness_score']), 3),
+        'anti_spoofing': 'REAL',
+        'method': 'head-turn challenge + planar parallax',
+        'metrics': active['metrics'],
+    }
+    return image_bytes, liveness, None
+
+
+class LivenessChallengeView(APIView):
+    """
+    GET /api/face-verify/liveness-challenge/
+    =========================================
+    Returns a signed, user-bound challenge: CENTER, then LEFT/RIGHT in random
+    order. The client captures one frame per step and posts them as
+    frame_CENTER, frame_LEFT, frame_RIGHT with challenge_token.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(active_liveness.issue_challenge(request.user))
 
 
 class LiveFaceVerifyView(APIView):
@@ -353,7 +424,7 @@ class CnicBasedFaceVerifyView(APIView):
                 {'success': False, 'error': 'Invalid CNIC format.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not live_image_file:
+        if not live_image_file and not request.FILES.get('frame_CENTER'):
             return Response(
                 {'success': False, 'error': 'live_image is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -407,20 +478,9 @@ class CnicBasedFaceVerifyView(APIView):
                     'verified_cnic': cnic,
                 })
 
-        image_bytes = live_image_file.read()
-
-        try:
-            liveness = check_liveness_with_ai(image_bytes)
-        except LivenessServiceError as exc:
-            return Response({'success': False, 'error': str(exc)}, status=503)
-
-        if not liveness['verified']:
-            return Response({
-                'success': False,
-                'error': 'Liveness verification failed. Please capture a live image.',
-                'liveness_score': liveness['liveness_score'],
-                'anti_spoofing': liveness['anti_spoofing'],
-            }, status=status.HTTP_400_BAD_REQUEST)
+        image_bytes, liveness, error_response = run_live_checks(request)
+        if error_response is not None:
+            return error_response
 
         # ── Run 1:1 CNIC-based verification ──────────────────────────────
         report = FaceVerificationService.verify_with_cnic(
@@ -490,6 +550,8 @@ class CnicBasedFaceVerifyView(APIView):
             'message': message,
             'verification_mode': '1:1_CNIC_BASED',
             'verified_cnic': cnic,
+            'liveness_score': liveness['liveness_score'],
+            'liveness_method': liveness['method'],
         })
 
 

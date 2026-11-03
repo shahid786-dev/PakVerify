@@ -6,9 +6,11 @@
  * Flow:
  * 1. Citizen clicks "Start Verification"
  * 2. Webcam opens with live preview
- * 3. Citizen clicks "Capture & Verify"
- * 4. Frame is captured from video stream
- * 5. Frame is sent to Django API (POST /api/face-verify/verify/)
+ * 3. Citizen clicks "Start Face Scan"
+ * 4. A signed head-turn challenge is fetched (GET /api/face-verify/liveness-challenge/):
+ *    look straight, then turn LEFT / RIGHT in a random order. One frame per step.
+ * 5. All frames go to POST /api/face-verify/verify-with-cnic/. The server checks the
+ *    3-D head movement (a photo or screen cannot produce it), then matches the face.
  * 6. Result is displayed with similarity score and status
  * 7. Verification report is shown with blockchain hash
  */
@@ -128,6 +130,8 @@ const FaceVerification = ({ applicationId = null }) => {
   const [cameraError, setCameraError] = useState('');
   const [countdown, setCountdown] = useState(null);
   const [storeStatus, setStoreStatus] = useState(null);
+  const [scanStep, setScanStep] = useState(null);      // { name, text, index, total }
+  const [scanning, setScanning] = useState(false);
 
   // ── Refs ─────────────────────────────────────────────────────────────
   const videoRef  = useRef(null);
@@ -237,38 +241,72 @@ const FaceVerification = ({ applicationId = null }) => {
     return new Blob([arr], { type: mime });
   };
 
-  // ── 3-second countdown then capture ──────────────────────────────────
-  const handleCaptureAndVerify = () => {
-    let count = 3;
-    setCountdown(count);
-    const interval = setInterval(() => {
-      count -= 1;
-      if (count > 0) {
-        setCountdown(count);
-      } else {
-        clearInterval(interval);
-        setCountdown(null);
-        executeCapture();
-      }
-    }, 1000);
+  // ── Head-turn liveness scan ──────────────────────────────────────────
+  const STEP_TEXT = {
+    CENTER: 'Look straight at the camera',
+    LEFT:   'Turn your head to your LEFT (look toward your left shoulder)',
+    RIGHT:  'Turn your head to your RIGHT (look toward your right shoulder)',
+  };
+  const STEP_ARROW = { CENTER: '●', LEFT: '←', RIGHT: '→' };
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const countdownFrom = async (seconds) => {
+    for (let c = seconds; c > 0; c -= 1) {
+      setCountdown(c);
+      await sleep(1000);
+    }
+    setCountdown(null);
   };
 
-  const executeCapture = async () => {
-    const dataUrl = captureFrame();
-    if (!dataUrl) {
-      setErrorText('Failed to capture from webcam.');
+  const handleCaptureAndVerify = async () => {
+    if (scanning) return;
+    setScanning(true);
+    setErrorText('');
+    let challenge;
+    try {
+      challenge = (await API.get('/api/face-verify/liveness-challenge/')).data;
+    } catch (err) {
+      setScanning(false);
+      stopCamera();
+      setErrorText(err.response?.data?.error || 'Could not start the liveness check. Please try again.');
       setPhase('error');
       return;
     }
 
-    setCapturedImage(dataUrl);
+    const frames = {};
+    const steps = challenge.steps || ['CENTER', 'LEFT', 'RIGHT'];
+    for (let i = 0; i < steps.length; i += 1) {
+      const name = steps[i];
+      setScanStep({ name, text: STEP_TEXT[name] || name, index: i + 1, total: steps.length });
+      await countdownFrom(name === 'CENTER' ? 3 : 2);
+      await sleep(name === 'CENTER' ? 0 : 400);   // let the turn finish
+      const dataUrl = captureFrame();
+      if (!dataUrl) {
+        setScanning(false);
+        setScanStep(null);
+        stopCamera();
+        setErrorText('Failed to capture from webcam.');
+        setPhase('error');
+        return;
+      }
+      frames[name] = dataUrl;
+    }
+    setScanStep(null);
+    setScanning(false);
+    executeVerify(frames, challenge.challenge_token);
+  };
+
+  const executeVerify = async (frames, challengeToken) => {
+    setCapturedImage(frames.CENTER);
     stopCamera();
     setPhase('processing');
 
     try {
-      const blob = base64ToBlob(dataUrl);
       const formData = new FormData();
-      formData.append('live_image', blob, 'live_capture.jpg');
+      Object.entries(frames).forEach(([name, dataUrl]) => {
+        formData.append(`frame_${name}`, base64ToBlob(dataUrl), `${name.toLowerCase()}.jpg`);
+      });
+      formData.append('challenge_token', challengeToken);
       formData.append('cnic', cnicData.cnic); // Passed from step 1
       if (applicationId) {
         formData.append('application_id', applicationId);
@@ -284,13 +322,17 @@ const FaceVerification = ({ applicationId = null }) => {
       setPhase('result');
 
     } catch (err) {
+      const data = err.response?.data || {};
+      const tips = {
+        FLAT_IMAGE: 'A photo, printed picture or screen was detected. Only a live person can be verified.',
+        NO_TURN: 'Tip: turn your head clearly, as if looking at your shoulder.',
+        TURN_NOT_BOTH_SIDES: 'Tip: turn to the side shown on screen each time.',
+        NOT_FRONTAL: 'Tip: for the first step, face the camera straight on.',
+      };
       const detail =
-        err.response?.data?.error ||
-        err.response?.data?.errors ||
-        err.response?.data?.detail ||
-        err.message ||
-        'Unknown error';
-      setErrorText(typeof detail === 'object' ? JSON.stringify(detail) : detail);
+        data.error || data.errors || data.detail || err.message || 'Unknown error';
+      const text = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+      setErrorText(tips[data.liveness_reason] ? `${text}\n\n${tips[data.liveness_reason]}` : text);
       setPhase('error');
     }
   };
@@ -303,6 +345,8 @@ const FaceVerification = ({ applicationId = null }) => {
     setErrorText('');
     setCameraError('');
     setCountdown(null);
+    setScanStep(null);
+    setScanning(false);
     if (cnicData) {
       setPhase('idle'); // Go back to camera ready if CNIC already verified
     } else {
@@ -533,6 +577,26 @@ const FaceVerification = ({ applicationId = null }) => {
                   pointerEvents: 'none',
                 }} />
 
+                {/* Head-turn instruction banner */}
+                {scanStep && (
+                  <div style={{
+                    position: 'absolute', left: 0, right: 0, top: 0,
+                    padding: '10px 14px', borderRadius: '12px 12px 0 0',
+                    background: 'rgba(0,27,80,0.85)', color: '#fff',
+                    display: 'flex', alignItems: 'center', gap: '12px', zIndex: 2,
+                  }}>
+                    <span style={{ fontSize: '30px', fontWeight: 900, lineHeight: 1 }}>
+                      {STEP_ARROW[scanStep.name]}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: '11px', opacity: 0.8, letterSpacing: '0.08em' }}>
+                        STEP {scanStep.index} OF {scanStep.total} · LIVENESS CHECK
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 700 }}>{scanStep.text}</div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Countdown overlay */}
                 {countdown !== null && (
                   <div style={{
@@ -553,13 +617,16 @@ const FaceVerification = ({ applicationId = null }) => {
               </div>
 
               <p style={{ textAlign: 'center', color: '#aaa', fontSize: '13px', margin: '12px 0' }}>
-                Position your face within the oval guide and click Capture
+                {scanStep
+                  ? 'Hold the pose until the countdown ends'
+                  : 'Put your face in the oval. You will be asked to look straight, then turn left and right.'}
               </p>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button
                   id="cancel-camera-btn"
                   onClick={() => { stopCamera(); handleReset(); }}
+                  disabled={scanning}
                   style={{ ...btnStyle, background: '#555', flex: 1 }}
                 >
                   Cancel
@@ -567,15 +634,15 @@ const FaceVerification = ({ applicationId = null }) => {
                 <button
                   id="capture-verify-btn"
                   onClick={handleCaptureAndVerify}
-                  disabled={countdown !== null}
+                  disabled={scanning}
                   style={{
                     ...btnStyle,
                     background: 'linear-gradient(135deg, #00b09b, #96c93d)',
                     flex: 2,
-                    opacity: countdown !== null ? 0.6 : 1,
+                    opacity: scanning ? 0.6 : 1,
                   }}
                 >
-                  📸 Capture & Verify (3s)
+                  {scanning ? 'Scanning… follow the steps' : '📸 Start Face Scan'}
                 </button>
               </div>
             </>

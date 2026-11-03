@@ -10,6 +10,7 @@ from .views import (
     LiveFaceVerifyView,
     VerifyCNICView,
     CnicBasedFaceVerifyView,
+    LivenessChallengeView,
     VerificationHistoryView,
     VerificationReportDetailView,
     EmbeddingStoreStatusView,
@@ -29,6 +30,12 @@ urlpatterns = [
         'verify-cnic/',
         VerifyCNICView.as_view(),
         name='verify-cnic',
+    ),
+    # GET — signed head-turn challenge for active liveness (call before Step 2)
+    path(
+        'liveness-challenge/',
+        LivenessChallengeView.as_view(),
+        name='liveness-challenge',
     ),
     # POST — Step 2: 1:1 face verification for specific CNIC
     path(

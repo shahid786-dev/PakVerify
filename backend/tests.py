@@ -34,6 +34,32 @@ def create_staff(**kwargs):
     return User.objects.create_user(**defaults)
 
 
+
+# ── Active liveness test helpers ────────────────────────────────────────────
+_ACTIVE_LIVENESS_PASS = {
+    'verified': True, 'liveness_score': 0.9, 'anti_spoofing': 'REAL', 'reason': 'LIVE',
+    'message': 'Live person confirmed.', 'metrics': {}, 'center_bytes': b'center-frame',
+}
+
+
+class _LivenessPatches:
+    """Patch both the head-turn check and the AI-service passive check."""
+
+    def __init__(self, passive_result, active_result=None):
+        self._patches = [
+            patch('face_verification.active_liveness.run_active_liveness',
+                  return_value=active_result or _ACTIVE_LIVENESS_PASS),
+            patch('face_verification.views.check_liveness_with_ai', return_value=passive_result),
+        ]
+
+    def __enter__(self):
+        return [p.start() for p in self._patches]
+
+    def __exit__(self, *exc):
+        for p in reversed(self._patches):
+            p.stop()
+        return False
+
 class StaffPasswordRequiredTests(TestCase):
     def setUp(self):
         self.authority = create_citizen(
@@ -242,9 +268,11 @@ class ApplicationTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('live face image', res.data['error'])
 
+    @patch('face_verification.active_liveness.run_active_liveness')
     @patch('face_verification.views.check_liveness_with_ai')
     @patch('face_verification.views.FaceVerificationService.verify_with_cnic')
-    def test_cnic_face_verify_runs_criminal_check(self, mock_verify, mock_liveness):
+    def test_cnic_face_verify_runs_criminal_check(self, mock_verify, mock_liveness, mock_active):
+        mock_active.return_value = _ACTIVE_LIVENESS_PASS
         from django.core.files.uploadedfile import SimpleUploadedFile
         from face_verification.models import FaceVerificationReport
 
@@ -2213,10 +2241,7 @@ class Stage6IntegrationTests(TestCase):
             'face_detected': True,
             'verified': True,
         }
-        return face_patch, patch(
-            'face_verification.service.check_liveness_with_ai',
-            return_value=live_result,
-        )
+        return face_patch, _LivenessPatches(live_result)
 
     def test_e2e_full_workflow_citizen_sindh(self):
         """End-to-end test for Citizen A (Sindh / Karachi)."""
@@ -2369,3 +2394,131 @@ class Stage6IntegrationTests(TestCase):
         self.assertEqual(res_qr.data['cnic'], '35202-*******-2')
         self.assertEqual(res_qr.data['province'], 'Punjab')
         self.assertEqual(res_qr.data['authority'], 'Punjab Police')
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Active liveness (head-turn challenge + planar parallax)
+# ─────────────────────────────────────────────────────────────────────────────
+import numpy as _np
+from django.test import SimpleTestCase as _SimpleTestCase
+
+
+def _rot(yaw=0.0, pitch=0.0, roll=0.0):
+    a, b, c = _np.radians([yaw, pitch, roll])
+    ry = _np.array([[_np.cos(a), 0, _np.sin(a)], [0, 1, 0], [-_np.sin(a), 0, _np.cos(a)]])
+    rx = _np.array([[1, 0, 0], [0, _np.cos(b), -_np.sin(b)], [0, _np.sin(b), _np.cos(b)]])
+    rz = _np.array([[_np.cos(c), -_np.sin(c), 0], [_np.sin(c), _np.cos(c), 0], [0, 0, 1]])
+    return rz @ rx @ ry
+
+
+def _project(points, dist=500.0, f=600.0):
+    z = dist - points[:, 2]
+    return _np.stack([f * points[:, 0] / z + 320, f * points[:, 1] / z + 240], 1)
+
+
+# Average 3-D positions (mm) of the 5 SCRFD keypoints: eyes, nose tip, mouth corners.
+_FACE_3D = _np.array([[-32, 0, 0], [32, 0, 0], [0, 38, 20], [-25, 68, 6], [25, 68, 6]], float)
+_FLAT_PHOTO = _FACE_3D * _np.array([1, 1, 0])  # the same face printed on paper
+
+
+class ActiveLivenessGeometryTests(_SimpleTestCase):
+    """The decision logic, on synthetic keypoints (no camera or model needed)."""
+
+    def _kps(self, shape, yaw=0.0, pitch=0.0, roll=0.0, dist=500.0):
+        return _project((_rot(yaw, pitch, roll) @ shape.T).T, dist)
+
+    def test_real_head_turning_passes(self):
+        from face_verification.active_liveness import evaluate_geometry
+        for yaw in (25, 35, 45):
+            res = evaluate_geometry(self._kps(_FACE_3D), self._kps(_FACE_3D, yaw),
+                                    self._kps(_FACE_3D, -yaw))
+            self.assertTrue(res['passed'], (yaw, res))
+
+    def test_photo_tilted_like_a_head_turn_is_rejected(self):
+        from face_verification.active_liveness import evaluate_geometry
+        for yaw in (30, 45, 60):
+            for dist in (150, 500):
+                res = evaluate_geometry(self._kps(_FLAT_PHOTO, dist=dist),
+                                        self._kps(_FLAT_PHOTO, yaw, dist=dist),
+                                        self._kps(_FLAT_PHOTO, -yaw, dist=dist))
+                self.assertFalse(res['passed'], (yaw, dist, res))
+
+    def test_photo_tilted_on_diagonal_axis_is_rejected(self):
+        from face_verification.active_liveness import evaluate_geometry
+        rng = _np.random.default_rng(7)
+        passed = 0
+        for _ in range(2000):
+            frames = [self._kps(_FLAT_PHOTO, *rng.uniform([-60, -60, -30], [60, 60, 30]),
+                                dist=rng.uniform(150, 600)) for _ in range(3)]
+            frames[0] = self._kps(_FLAT_PHOTO, *rng.uniform(-8, 8, 3))
+            frames = [k + rng.normal(0, 1.5, k.shape) for k in frames]
+            passed += evaluate_geometry(*frames)['passed']
+        self.assertLessEqual(passed, 2)
+
+    def test_same_still_image_for_every_step_is_rejected(self):
+        from face_verification.active_liveness import evaluate_geometry
+        k = self._kps(_FACE_3D)
+        self.assertFalse(evaluate_geometry(k, k, k)['passed'])
+
+    def test_challenge_round_trip_and_owner_binding(self):
+        from types import SimpleNamespace
+        from face_verification.active_liveness import (
+            ActiveLivenessError, issue_challenge, read_challenge)
+        alice, bob = SimpleNamespace(pk=1), SimpleNamespace(pk=2)
+        ch = issue_challenge(alice)
+        self.assertEqual(ch['steps'][0], 'CENTER')
+        self.assertEqual(sorted(ch['steps'][1:]), ['LEFT', 'RIGHT'])
+        self.assertEqual(read_challenge(ch['challenge_token'], alice)['s'], ch['steps'])
+        with self.assertRaises(ActiveLivenessError):
+            read_challenge(ch['challenge_token'], bob)
+        with self.assertRaises(ActiveLivenessError):
+            read_challenge(ch['challenge_token'] + 'x', alice)
+
+
+class ActiveLivenessEndpointTests(TestCase):
+
+    def setUp(self):
+        self.citizen = create_citizen(cnic='42101-7777777-1', email='live@test.com')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.citizen)
+
+    def test_challenge_endpoint(self):
+        res = self.client.get('/api/face-verify/liveness-challenge/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('challenge_token', res.data)
+        self.assertEqual(len(res.data['steps']), 3)
+
+    def test_single_image_without_challenge_is_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        res = self.client.post('/api/face-verify/verify-with-cnic/', {
+            'cnic': self.citizen.cnic,
+            'live_image': SimpleUploadedFile('photo.jpg', b'photo', content_type='image/jpeg'),
+        }, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data['liveness_reason'], 'INVALID_CHALLENGE')
+
+    def test_same_image_for_all_steps_is_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        token = self.client.get('/api/face-verify/liveness-challenge/').data['challenge_token']
+        data = {'cnic': self.citizen.cnic, 'challenge_token': token}
+        for step in ('CENTER', 'LEFT', 'RIGHT'):
+            data[f'frame_{step}'] = SimpleUploadedFile(f'{step}.jpg', b'same', content_type='image/jpeg')
+        res = self.client.post('/api/face-verify/verify-with-cnic/', data, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('same image', res.data['error'])
+
+    def test_flat_image_result_blocks_verification(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        spoof = dict(_ACTIVE_LIVENESS_PASS, verified=False, liveness_score=0.0,
+                     anti_spoofing='SPOOF_SUSPECTED', reason='FLAT_IMAGE',
+                     message='Spoof suspected: the face moved like a flat photo or screen, not a real head.')
+        with patch('face_verification.active_liveness.run_active_liveness', return_value=spoof), \
+                patch('face_verification.views.FaceVerificationService.verify_with_cnic') as mock_verify:
+            res = self.client.post('/api/face-verify/verify-with-cnic/', {
+                'cnic': self.citizen.cnic,
+                'live_image': SimpleUploadedFile('photo.jpg', b'photo', content_type='image/jpeg'),
+            }, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data['liveness_reason'], 'FLAT_IMAGE')
+        mock_verify.assert_not_called()

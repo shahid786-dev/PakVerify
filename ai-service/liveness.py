@@ -8,7 +8,6 @@ Falls back to OpenCV Haar cascade if MediaPipe is unavailable.
 """
 import numpy as np
 import cv2
-import random
 
 
 _insightface_app = None
@@ -97,8 +96,8 @@ def _mouth_aspect_ratio(landmarks):
 
 def _opencv_fallback(img) -> dict:
     """
-    OpenCV Haar cascade fallback. Detects a face and estimates liveness
-    via basic metrics + random score augmentation (for demo purposes).
+    OpenCV Haar cascade fallback. Detects a face and scores face presence/size.
+    It does not prove liveness on its own (see backend active_liveness.py).
     """
     insightface_result = _insightface_fallback(img)
     if insightface_result is not None:
@@ -153,17 +152,17 @@ def _opencv_fallback(img) -> dict:
     best_face_area = max(fw * fh for (fx, fy, fw, fh) in faces)
     face_ratio = best_face_area / frame_area
 
-    # Score: face size ratio + random jitter to simulate motion detection
-    base_score = min(1.0, face_ratio * 10.0 + 0.55)
-    jitter     = random.uniform(-0.05, 0.10)
-    score      = min(1.0, max(0.0, base_score + jitter))
+    # Deterministic face-presence score from face size. A single frame cannot
+    # prove liveness; the backend's head-turn challenge (active_liveness.py)
+    # is what rejects photos and screens.
+    score = min(1.0, max(0.0, face_ratio * 10.0 + 0.55))
 
     return {
         "liveness_score": round(score, 3),
         "face_detected":  True,
         "anti_spoofing":  "REAL" if score >= 0.70 else "SUSPECTED_SPOOF",
-        "blink_detected": random.choice([True, True, False]),
-        "method":         "opencv_fallback"
+        "blink_detected": False,
+        "method":         "opencv_fallback (single frame, presence only)"
     }
 
 

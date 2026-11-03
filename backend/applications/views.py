@@ -342,31 +342,24 @@ class AIFaceVerifyView(APIView):
                 })
             return Response({'error': f'Face verification is not available in status {application.status}.'}, status=400)
 
-        live_image = request.FILES.get('live_image')
+        live_image = request.FILES.get('live_image') or request.FILES.get('frame_CENTER')
         if not live_image:
             return Response({'error': 'A live face image is required.'}, status=400)
 
         from criminals.service import perform_criminal_check
-        from face_verification.exceptions import LivenessServiceError
-        from face_verification.service import FaceVerificationService, check_liveness_with_ai
+        from face_verification.service import FaceVerificationService
+        from face_verification.views import run_live_checks
 
-        try:
-            liveness = check_liveness_with_ai(live_image.read())
-        except LivenessServiceError as exc:
-            return Response({'error': str(exc)}, status=503)
-
-        if not liveness['verified']:
-            return Response({
-                'error': 'Liveness verification failed. Please capture a live image.',
-                'liveness_score': liveness['liveness_score'],
-                'anti_spoofing': liveness['anti_spoofing'],
-            }, status=400)
-
-        live_image.seek(0)
+        # Same head-turn challenge + parallax test as /api/face-verify/verify-with-cnic/
+        image_bytes, liveness, error_response = run_live_checks(request)
+        if error_response is not None:
+            payload = dict(error_response.data)
+            payload.pop('success', None)
+            return Response(payload, status=error_response.status_code)
 
         report = FaceVerificationService.verify_with_cnic(
             cnic=request.user.cnic,
-            image_bytes=live_image.read(),
+            image_bytes=image_bytes,
             citizen=request.user,
             application=application,
             ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
