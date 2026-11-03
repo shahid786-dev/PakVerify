@@ -45,14 +45,14 @@ def _get_client_ip(request) -> str:
     return request.META.get('REMOTE_ADDR', '127.0.0.1')
 
 
-def run_live_checks(request):
+def run_live_checks(request, user=None):
     """
     Active (head-turn) liveness, then the AI-service passive check on the CENTER
     frame. Returns (center_image_bytes, liveness_dict, error_response_or_None).
     Shared by both face verification endpoints so no path skips the head-turn test.
     """
     try:
-        active = active_liveness.run_active_liveness(request, request.user)
+        active = active_liveness.run_active_liveness(request, user or request.user)
     except active_liveness.ActiveLivenessError as exc:
         return None, None, Response(
             {'success': False, 'error': str(exc), 'liveness_reason': 'INVALID_CHALLENGE'},

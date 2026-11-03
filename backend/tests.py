@@ -2522,3 +2522,38 @@ class ActiveLivenessEndpointTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data['liveness_reason'], 'FLAT_IMAGE')
         mock_verify.assert_not_called()
+
+
+class FaceLoginLivenessTests(TestCase):
+
+    def setUp(self):
+        self.citizen = create_citizen(cnic='42101-8888888-1', email='facelogin@test.com')
+        self.client = APIClient()
+
+    def test_face_login_challenge_issued_for_cnic(self):
+        res = self.client.post('/api/auth/login/face/challenge/', {'cnic': self.citizen.cnic}, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['steps'][0], 'CENTER')
+
+    def test_face_login_with_single_photo_is_rejected(self):
+        res = self.client.post('/api/auth/login/face/', {
+            'cnic': self.citizen.cnic,
+            'live_image': SimpleUploadedFile('photo.jpg', b'photo', content_type='image/jpeg'),
+        }, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('access', res.data)
+
+    def test_face_login_flat_image_counts_as_failed_attempt(self):
+        spoof = dict(_ACTIVE_LIVENESS_PASS, verified=False, liveness_score=0.0,
+                     anti_spoofing='SPOOF_SUSPECTED', reason='FLAT_IMAGE', message='Spoof suspected.')
+        with patch('face_verification.active_liveness.run_active_liveness', return_value=spoof), \
+                patch('face_verification.service.FaceVerificationService.verify_with_cnic') as mock_verify:
+            res = self.client.post('/api/auth/login/face/', {
+                'cnic': self.citizen.cnic,
+                'live_image': SimpleUploadedFile('photo.jpg', b'photo', content_type='image/jpeg'),
+            }, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('access', res.data)
+        mock_verify.assert_not_called()
+        self.citizen.refresh_from_db()
+        self.assertEqual(self.citizen.failed_login_attempts, 1)

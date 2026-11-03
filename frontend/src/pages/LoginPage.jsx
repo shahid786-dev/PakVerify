@@ -25,6 +25,8 @@ export default function LoginPage({ roleType = 'citizen' }) {
   // Face Login State
   const [faceMode, setFaceMode] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [scanStep, setScanStep] = useState(null);   // { name, text, index, total }
+  const [countdown, setCountdown] = useState(null);
 
   const config = PAGE_CONFIG[roleType] || PAGE_CONFIG.citizen;
   const RoleIcon = config.icon;
@@ -65,27 +67,65 @@ export default function LoginPage({ roleType = 'citizen' }) {
     setCameraActive(false);
   };
 
-  const handleFaceLogin = async () => {
-    if (!videoRef.current) return;
+  // Head-turn liveness scan: look straight, then LEFT / RIGHT in the order the
+  // server chose. A photo or screen cannot produce the 3-D head movement.
+  const STEP_TEXT = {
+    CENTER: 'Look straight at the camera',
+    LEFT:   'Turn your head to your LEFT',
+    RIGHT:  'Turn your head to your RIGHT',
+  };
+  const STEP_ARROW = { CENTER: '●', LEFT: '←', RIGHT: '→' };
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const grabFrame = () => {
+    const video = videoRef.current;
+    if (!video) return null;
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    
-    const [, data] = dataUrl.split(',');
-    const binary = atob(data);
-    const arr = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-    const blob = new Blob([arr], { type: 'image/jpeg' });
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+  };
+
+  const handleFaceLogin = async () => {
+    if (!videoRef.current || loading) return;
+    setError('');
+    setLoading(true);
+
+    let challenge;
+    try {
+      challenge = (await authAPI.loginFaceChallenge(cnic.trim())).data;
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not start the face scan.');
+      setLoading(false);
+      return;
+    }
 
     const fd = new FormData();
     fd.append('cnic', cnic.trim());
-    fd.append('live_image', blob, 'login_face.jpg');
-
-    setLoading(true);
+    fd.append('challenge_token', challenge.challenge_token);
+    const steps = challenge.steps || ['CENTER', 'LEFT', 'RIGHT'];
+    for (let i = 0; i < steps.length; i += 1) {
+      const name = steps[i];
+      setScanStep({ name, text: STEP_TEXT[name] || name, index: i + 1, total: steps.length });
+      for (let c = name === 'CENTER' ? 3 : 2; c > 0; c -= 1) {
+        setCountdown(c);
+        await sleep(1000);
+      }
+      setCountdown(null);
+      if (name !== 'CENTER') await sleep(400);
+      const blob = await grabFrame();
+      if (!blob) {
+        setScanStep(null);
+        setLoading(false);
+        setError('Could not capture from the camera.');
+        return;
+      }
+      fd.append(`frame_${name}`, blob, `${name.toLowerCase()}.jpg`);
+    }
+    setScanStep(null);
     stopCamera();
-    
+
     try {
       const res = await authAPI.loginFace(fd);
       const { access, role, full_name } = res.data;
@@ -221,7 +261,7 @@ export default function LoginPage({ roleType = 'citizen' }) {
                   <User size={28} className="text-white" />
                 </div>
                 <h2 className="text-white font-display font-bold text-xl">Face ID Login</h2>
-                <p className="text-white/40 text-sm mt-1">Verify your identity using your face</p>
+                <p className="text-white/40 text-sm mt-1">Look straight, then turn your head left and right when asked</p>
               </div>
               
               {error && (
@@ -240,10 +280,26 @@ export default function LoginPage({ roleType = 'citizen' }) {
                 {cameraActive ? (
                   <div className="relative rounded-xl overflow-hidden border-2 border-emerald-500/50">
                     <video ref={videoRef} autoPlay muted playsInline className="w-full transform -scale-x-100" />
-                    <button type="button" onClick={handleFaceLogin} disabled={loading}
-                      className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-full shadow-lg">
-                      {loading ? 'Verifying...' : 'Capture & Login'}
-                    </button>
+                    {scanStep && (
+                      <div className="absolute top-0 inset-x-0 flex items-center gap-3 px-4 py-2 bg-slate-900/85 text-white">
+                        <span className="text-2xl font-black leading-none">{STEP_ARROW[scanStep.name]}</span>
+                        <div>
+                          <div className="text-[10px] tracking-widest text-white/60">STEP {scanStep.index} OF {scanStep.total} · LIVENESS</div>
+                          <div className="text-sm font-bold">{scanStep.text}</div>
+                        </div>
+                      </div>
+                    )}
+                    {countdown !== null && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                        <span className="text-7xl font-black text-white drop-shadow-lg">{countdown}</span>
+                      </div>
+                    )}
+                    {!scanStep && (
+                      <button type="button" onClick={handleFaceLogin} disabled={loading}
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-full shadow-lg">
+                        {loading ? 'Verifying...' : 'Start Face Scan'}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button type="button" onClick={startCamera}

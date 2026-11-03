@@ -70,6 +70,7 @@ export const authAPI = {
   register:     (data) => API.post('/api/auth/register/', data),
   login:        (data) => API.post('/api/auth/login/', data),
   loginFace:    (data) => API.post('/api/auth/login/face/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  loginFaceChallenge: (cnic) => API.post('/api/auth/login/face/challenge/', { cnic }),
   verifyOtp:    (data) => API.post('/api/auth/verify-otp/', data),
   requestReset: (data) => API.post('/api/auth/request-reset/', data),
   confirmReset: (data) => API.post('/api/auth/confirm-reset/', data),

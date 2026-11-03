@@ -118,13 +118,36 @@ class VerifyOtpView(APIView):
         tokens = get_tokens_for_user(user)
         return Response(tokens, status=status.HTTP_200_OK)
 
+class FaceLoginChallengeView(APIView):
+    """
+    POST /api/auth/login/face/challenge/  {cnic}
+    Issues the head-turn liveness challenge for face login, bound to the
+    account with this CNIC. The login request must return it with one frame
+    per step, so a photo held to the camera cannot log in.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        cnic = (request.data.get('cnic') or '').strip()
+        if not cnic:
+            return Response({'error': 'CNIC is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(cnic=cnic)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if user.check_lockout():
+            return Response({'error': 'Account locked due to too many failed attempts.'}, status=status.HTTP_403_FORBIDDEN)
+        from face_verification.active_liveness import issue_challenge
+        return Response(issue_challenge(user))
+
+
 class FaceLoginView(APIView):
     permission_classes = [permissions.AllowAny]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         cnic = (request.data.get('cnic') or '').strip()
-        live_image_file = request.FILES.get('live_image')
+        live_image_file = request.FILES.get('live_image') or request.FILES.get('frame_CENTER')
 
         if not cnic or not live_image_file:
             return Response({'error': 'CNIC and live_image are required for face login.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -138,7 +161,18 @@ class FaceLoginView(APIView):
             return Response({'error': 'Account locked due to too many failed attempts.'}, status=status.HTTP_403_FORBIDDEN)
 
         from face_verification.service import FaceVerificationService
-        image_bytes = live_image_file.read()
+        from face_verification.views import run_live_checks
+
+        # Head-turn liveness first: a photo or screen must never log anyone in.
+        image_bytes, liveness, error_response = run_live_checks(request, user=user)
+        if error_response is not None:
+            if error_response.status_code == status.HTTP_400_BAD_REQUEST \
+                    and error_response.data.get('liveness_reason') != 'INVALID_CHALLENGE':
+                user.increment_failed_attempts()
+            payload = dict(error_response.data)
+            payload.pop('success', None)
+            return Response(payload, status=error_response.status_code)
+
         report = FaceVerificationService.verify_with_cnic(
             cnic=cnic,
             image_bytes=image_bytes,
