@@ -22,7 +22,7 @@ with sync_playwright() as p:
     browser = p.chromium.launch()
 
     # sign in once (not recorded): test officer + local OTP bypass
-    ctx = browser.new_context(viewport=VIEW)
+    ctx = browser.new_context(viewport=VIEW, color_scheme='dark')
     page = ctx.new_page()
     page.goto(f'{BASE}/login/staff')
     page.get_by_placeholder('CNIC (35202-XXXXXXX-X) or Email').fill(info['staff_cnic'])
@@ -37,7 +37,7 @@ with sync_playwright() as p:
     session = page.evaluate('() => JSON.stringify({ls: {...localStorage}, ss: {...sessionStorage}})')
     ctx.close()
 
-    rec = browser.new_context(viewport=VIEW, storage_state=str(OUT / 'state.json'),
+    rec = browser.new_context(viewport=VIEW, color_scheme='dark', storage_state=str(OUT / 'state.json'),
                               record_video_dir=str(OUT / 'vid'), record_video_size=VIEW)
     page = rec.new_page()
     t0 = time.monotonic()

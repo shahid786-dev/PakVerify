@@ -25,7 +25,7 @@ for rect in hits:
     x = max(0, int(rect.x0) - 6)
     y = int((rect.y0 + rect.y1) / 2)
     r, g, b = pix.pixel(x, y)[:3]
-    pad = fitz.Rect(rect.x0 - 2, rect.y0 - 1, rect.x1 + 2, rect.y1 + 1)
+    pad = fitz.Rect(rect.x0 - 2, rect.y0 + 1, rect.x1 + 2, rect.y1 - rect.height * 0.12)
     page.draw_rect(pad, color=None, fill=(r / 255, g / 255, b / 255), overlay=True)
     size = rect.height * 0.78
     width = fitz.get_text_length(replacement, fontname='tibi', fontsize=size)

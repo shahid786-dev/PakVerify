@@ -34,7 +34,7 @@ jobs:
 
       - name: Install
         run: |
-          pip install -r backend/requirements.txt pymupdf playwright edge-tts
+          pip install -r backend/requirements.txt pymupdf playwright edge-tts piper-tts
           python -m playwright install --with-deps chromium
           cd frontend && npm ci
 
@@ -42,7 +42,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p demo_out/vo
-          python demo/tts.py demo_out
+          python demo/tts.py demo_out 2>&1 | tee demo_out/tts.log
 
       - name: Seed, issue certificate, make tampered copy
         id: seed
