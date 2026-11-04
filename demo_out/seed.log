@@ -1,0 +1,5 @@
+[2026-11-04 19:27:18,117] INFO face_verification: Loaded 102 NADRA embeddings from disk.
+[2026-11-04 19:27:18,118] INFO face_verification: Search matrix built: shape=(102, 512)  dtype=float32
+31 objects imported automatically (use -v 2 for details).
+
+ISSUED {"certificate_number": "CERT-2026-977926", "certificate_hash": "0f0a29a7ec3d1f06c6bb6b82dab780187b6e96ef78878fd61f4cb7b4644c5b02", "staff_cnic": "00000-0000009-9"}
