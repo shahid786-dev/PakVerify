@@ -66,7 +66,7 @@ jobs:
       - name: Commit outputs
         if: always()
         run: |
-          rm -rf demo_out/state.json demo_out/vid
+          rm -rf demo_out/state.json demo_out/vid demo_out/*.onnx demo_out/*.onnx.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f demo_out

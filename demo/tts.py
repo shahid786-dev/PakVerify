@@ -12,14 +12,22 @@ async def edge():
     open(f'{OUT}/voices.txt', 'w').write('\n'.join(sorted(n for n in names if n.startswith(('en-', 'ur-')))))
     voice = next(v for v in PREFERRED if v in names)
     for key, text in lines:
-        await edge_tts.Communicate(text, voice, rate='+4%').save(f'{OUT}/vo/{key}.mp3')
+        for attempt in range(5):
+            try:
+                await edge_tts.Communicate(text, voice, rate='+4%').save(f'{OUT}/vo/{key}.mp3')
+                break
+            except Exception:
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(4 * (attempt + 1))
+        await asyncio.sleep(1.5)
     return f'edge-tts {voice}'
 
 def piper():
     model = 'en_US-ryan-high'
-    subprocess.run([sys.executable, '-m', 'piper.download_voices', model], check=True, cwd=OUT)
+    subprocess.run([sys.executable, '-m', 'piper.download_voices', model], check=True, cwd='/tmp')
     for key, text in lines:
-        subprocess.run([sys.executable, '-m', 'piper', '-m', f'{OUT}/{model}.onnx',
+        subprocess.run([sys.executable, '-m', 'piper', '-m', f'/tmp/{model}.onnx',
                         '-f', f'{OUT}/vo/{key}.wav', '--', text], check=True)
     return f'piper {model}'
 
