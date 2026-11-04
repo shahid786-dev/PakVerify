@@ -1,0 +1,74 @@
+name: Demo video assets
+
+# Runs only on the demo-video branch. Starts PakVerify locally (SQLite, test
+# accounts), records the certificate integrity check (original vs edited PDF)
+# and generates the voice-over, then commits the files to demo_out/.
+on:
+  push:
+    branches: [demo-video]
+    paths: ['demo/**', '.github/workflows/demo-assets.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DJANGO_DEBUG: 'true'
+      DJANGO_ENV: local
+      OTP_DEV_BYPASS: 'true'
+      DJANGO_SECRET_KEY: demo-only-not-secret
+      CERTIFICATE_VERIFY_BASE_URL: https://pakverify-ten.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: |
+          pip install -r backend/requirements.txt pymupdf playwright edge-tts
+          python -m playwright install --with-deps chromium
+          cd frontend && npm ci
+
+      - name: Voice-over
+        continue-on-error: true
+        run: |
+          mkdir -p demo_out/vo
+          python demo/tts.py demo_out
+
+      - name: Seed, issue certificate, make tampered copy
+        id: seed
+        continue-on-error: true
+        run: |
+          mkdir -p demo_out
+          cd backend
+          python manage.py migrate --noinput > ../demo_out/migrate.log 2>&1
+          python manage.py shell < ../demo/seed_and_issue.py 2>&1 | tee ../demo_out/seed.log
+          cd ..
+          python demo/tamper.py demo_out 2>&1 | tee demo_out/tamper.log
+
+      - name: Start servers and record
+        continue-on-error: true
+        run: |
+          cd backend && (python manage.py runserver 8000 > ../demo_out/backend.log 2>&1 &) && cd ..
+          cd frontend && (VITE_API_BASE_URL=http://localhost:8000 npx vite --port 5173 --strictPort > ../demo_out/frontend.log 2>&1 &) && cd ..
+          for i in $(seq 1 60); do curl -sf http://localhost:5173 >/dev/null && curl -s -o /dev/null http://localhost:8000/api/public/stats/ && break; sleep 2; done
+          python demo/record.py demo_out 2>&1 | tee demo_out/record.log
+
+      - name: Commit outputs
+        if: always()
+        run: |
+          rm -rf demo_out/state.json demo_out/vid
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f demo_out
+          git commit -m "Demo assets from workflow run ${{ github.run_id }}" || echo "nothing to commit"
+          git push

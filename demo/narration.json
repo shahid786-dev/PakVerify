@@ -1,0 +1,14 @@
+[
+  ["s01_title", "This is PakVerify: an AI and blockchain based police verification system."],
+  ["s02_home", "It replaces repeated visits to the police station with one secure, online process."],
+  ["s03_citizen", "A citizen signs in, and the dashboard shows the NADRA identity record linked to their CNIC."],
+  ["s04_apply", "They choose the certificate type, enter the purpose and address, and upload their CNIC and photo."],
+  ["s05_face", "Next is live face verification. The citizen looks straight, then turns left and right. ArcFace matches the face with the CNIC photo, and the head-turn check blocks printed photos and screens."],
+  ["s06_staff", "Police staff sign in with a one-time password. The criminal record check has already run, so staff only review the documents."],
+  ["s07_authority", "A senior officer then approves the application from the authority dashboard."],
+  ["s08_payment", "The citizen pays the fee online, and staff confirm the payment."],
+  ["s09_cert", "The certificate is issued with a QR code, and its SHA-256 hash is written to the hash-chain ledger."],
+  ["s10_verified", "At any police desk, an officer can check a certificate. The original PDF matches the stored hash, so it is verified."],
+  ["s11_tamper", "Now someone edits the PDF and changes the holder's name. The hash no longer matches, and PakVerify flags the certificate as tampered."],
+  ["s12_end", "PakVerify. Faster, transparent, and tamper-proof police verification. Thank you."]
+]
