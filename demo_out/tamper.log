@@ -1,6 +1,0 @@
-/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/fitz/__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
-  warnings.warn(
-{
-  "original": "0f0a29a7ec3d1f06c6bb6b82dab780187b6e96ef78878fd61f4cb7b4644c5b02",
-  "tampered": "b6ff1d84f8713eb21f9eed5c581cffb9c35165c32dad3a3ff86a5077e9dd5115"
-}

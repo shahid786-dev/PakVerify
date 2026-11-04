@@ -1,14 +1,14 @@
 [
   ["s01_title", "This is PakVerify: an AI and blockchain based police verification system."],
-  ["s02_home", "It replaces repeated visits to the police station with one secure, online process."],
-  ["s03_citizen", "A citizen signs in, and the dashboard shows the NADRA identity record linked to their CNIC."],
-  ["s04_apply", "They choose the certificate type, enter the purpose and address, and upload their CNIC and photo."],
+  ["s02_home", "It replaces repeated visits to the police station with one secure, online process, from the first application to the final certificate."],
+  ["s03_citizen", "A citizen signs in with their CNIC and a one-time password, and the dashboard shows the NADRA identity record linked to that CNIC."],
+  ["s04_apply", "They choose the certificate type, enter the purpose, address and nearest police station, and upload their CNIC and photo. The fee is shown upfront."],
   ["s05_face", "Next is live face verification. The citizen looks straight, then turns left and right. ArcFace matches the face with the CNIC photo, and the head-turn check blocks printed photos and screens."],
-  ["s06_staff", "Police staff sign in with a one-time password. The criminal record check has already run, so staff only review the documents."],
-  ["s07_authority", "A senior officer then approves the application from the authority dashboard."],
-  ["s08_payment", "The citizen pays the fee online, and staff confirm the payment."],
-  ["s09_cert", "The certificate is issued with a QR code, and its SHA-256 hash is written to the hash-chain ledger."],
-  ["s10_verified", "At any police desk, an officer can check a certificate. The original PDF matches the stored hash, so it is verified."],
-  ["s11_tamper", "Now someone edits the PDF and changes the holder's name. The hash no longer matches, and PakVerify flags the certificate as tampered."],
+  ["s06_staff", "Police staff sign in with a one-time password. The criminal record check against the CNIC has already run automatically, so staff only review the documents and forward the case."],
+  ["s07_authority", "A senior officer reviews the complete file and approves the application from the authority dashboard."],
+  ["s08_payment", "The citizen pays the fee online through a mobile wallet, and staff confirm the payment before the certificate is released."],
+  ["s09_cert", "The certificate is generated with a QR code. Its SHA-256 hash is written to the hash-chain ledger, and can also be anchored on the Ethereum Sepolia network."],
+  ["s10_verified", "At any police desk, an officer can check a certificate by entering its number and uploading the PDF. The original file matches the stored hash, so it is verified."],
+  ["s11_tamper", "Now someone edits the PDF and changes the holder's name. Even this small change produces a completely different hash, so PakVerify flags the certificate as tampered."],
   ["s12_end", "PakVerify. Faster, transparent, and tamper-proof police verification. Thank you."]
 ]
