@@ -1,16 +1,58 @@
 [
-  ["n01_intro", "Getting a police character certificate in Pakistan usually means queues, paperwork and repeated visits to the police station. PakVerify moves the whole process online, with AI identity checks and a tamper-evident record."],
-  ["n02_portals", "Each user signs in to their own portal. Citizens, police staff, senior officers and administrators each get a separate dashboard, protected by a password and a one-time code."],
-  ["n03_apply", "A citizen submits a request and uploads their CNIC and photo."],
-  ["n04_face", "Live face verification asks the citizen to look straight, then turn left and right, so a printed photo cannot pass. ArcFace then matches the face with the CNIC record."],
-  ["n05_police", "The criminal record check runs automatically. Staff review the documents, and a senior officer approves the case."],
-  ["n06_cert", "After online payment, the certificate is issued with a QR code."],
-  ["n07_chat_citizen", "The built-in assistant is role-based. A citizen can track only their own application, and a criminal record lookup is refused."],
-  ["n08_chat_staff", "Signed in as police staff, the same assistant can search the criminal record dataset by CNIC. It is a rule-based assistant that answers only from the system's own records."],
-  ["n09_admin", "The administrator monitors the whole system from one control center: application totals, staff accounts, analytics and the audit log."],
-  ["n10_ledger", "Every key action is written to a SHA-256 hash-chain ledger. The blockchain explorer re-checks every block, and when a stored record is altered, the chain is flagged as compromised."],
-  ["n11_integrity", "A certificate PDF is also checked against its issued hash. The original passes, while an edited copy is flagged as tampered."],
-  ["n12_qr", "Anyone can scan the QR code to open the public verification page, and the certificate hash is also anchored on the Ethereum Sepolia test network."],
-  ["n13_tech", "PakVerify is built with React, Django and PostgreSQL, ONNX face models and a Solidity smart contract, and it is deployed on Vercel."],
-  ["n14_end", "PakVerify. Faster, transparent and tamper-evident police verification. Thank you."]
+ [
+  "n01_intro",
+  "Getting a police character certificate in Pakistan usually means queues, paperwork and repeated visits to the police station. PakVerify moves the whole process online, with AI identity checks and a tamper-evident record."
+ ],
+ [
+  "n02_portals",
+  "Each user signs in to their own portal. Citizens, police staff, senior officers and administrators each get a separate dashboard, protected by a password and a one-time code."
+ ],
+ [
+  "n03_apply",
+  "A citizen submits a request and uploads their CNIC and photo."
+ ],
+ [
+  "n04_face",
+  "Live face verification asks the citizen to look straight, then turn left and right, so a printed photo cannot pass. ArcFace then matches the face with the CNIC record."
+ ],
+ [
+  "n05_police",
+  "The criminal record check runs automatically. Staff review the documents, and a senior officer approves the case."
+ ],
+ [
+  "n06_cert",
+  "After online payment, the certificate is issued with a QR code."
+ ],
+ [
+  "n07_chat_citizen",
+  "The built-in assistant is role-based. A citizen can track only their own application, and a criminal record lookup is refused."
+ ],
+ [
+  "n08_chat_staff",
+  "Signed in as police staff, the same assistant can search the criminal record dataset by CNIC. It is a rule-based assistant that answers only from the system's own records."
+ ],
+ [
+  "n09_admin",
+  "The administrator monitors the whole system from one control center: application totals, police staff accounts and service analytics."
+ ],
+ [
+  "n10_ledger",
+  "Every key action is written to a SHA-256 hash-chain ledger. The blockchain explorer re-checks every block, and when a stored record is altered, the chain is flagged as compromised."
+ ],
+ [
+  "n11_integrity",
+  "A certificate PDF is also checked against its issued hash. The original passes, while an edited copy is flagged as tampered."
+ ],
+ [
+  "n12_qr",
+  "Anyone can scan the QR code to open the public verification page, and the certificate hash is also anchored on the Ethereum Sepolia test network."
+ ],
+ [
+  "n13_tech",
+  "PakVerify is built with React, Django and PostgreSQL, ONNX face models and a Solidity smart contract, and it is deployed on Vercel."
+ ],
+ [
+  "n14_end",
+  "PakVerify. Faster, transparent and tamper-evident police verification. Thank you."
+ ]
 ]

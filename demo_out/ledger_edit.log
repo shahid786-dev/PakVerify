@@ -1,5 +1,0 @@
-31 objects imported automatically (use -v 2 for details).
-
-LEDGER_EDITED 3 DOCUMENT_UPLOAD
-[2026-11-05 23:07:06,866] INFO face_verification: Loaded 102 NADRA embeddings from disk.
-[2026-11-05 23:07:06,867] INFO face_verification: Search matrix built: shape=(102, 512)  dtype=float32
