@@ -96,7 +96,8 @@ def chat_citizen(page, mark, m):
 
 
 def chat_staff(page, mark, m):
-    page.goto(BASE + '/staff/dashboard')
+    # dark page behind the translucent chat panel (no white document thumbnails)
+    page.goto(BASE + '/staff/certificate-integrity')
     page.wait_for_timeout(2600)
     mark('dashboard')
     open_chat(page, mark, m)
