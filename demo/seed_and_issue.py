@@ -54,3 +54,39 @@ info = {
 with open(os.path.join(OUT, 'cert.json'), 'w') as fh:
     json.dump(info, fh, indent=2)
 print('ISSUED', json.dumps(info))
+
+# ── Extra local demo data for the chatbot / admin / explorer recording ──────
+from django.core.management import call_command
+call_command('seed_criminal_records')
+
+admin, _ = User.objects.get_or_create(
+    cnic='00000-0000001-1',
+    defaults=dict(email='demo.admin@example.test', full_name='System Admin', role='SUPER_ADMIN'),
+)
+admin.set_password('DemoAdmin#2026')
+admin.save()
+
+others = [
+    ('42101-0000003-3', 'Tahir Raza', 'Employee Verification', 'CRIMINAL_CHECKED'),
+    ('42101-0000004-4', 'Mohsin Raza', 'Tenant Verification', 'PENDING'),
+    ('42101-0000005-5', 'Ayesha Khan', 'Character Certificate', 'AUTHORITY_APPROVED'),
+    ('42101-0000006-6', 'Bilal Ahmed', 'General Police Verification', 'PAYMENT_PENDING'),
+]
+for cnic, name, kind, status in others:
+    u, _ = User.objects.get_or_create(cnic=cnic, defaults=dict(
+        email=f'{cnic[-3:]}@example.test', full_name=name, role='CITIZEN',
+        province='Sindh', district='Khairpur'))
+    Application.objects.create(applicant=u, application_type=kind, purpose='Job',
+                               current_address='Khairpur', nearest_station='City PS Khairpur',
+                               status=status, applicant_province='Sindh')
+
+info.update({
+    'tracking_id': app.tracking_id,
+    'application_id': app.id,
+    'admin_cnic': admin.cnic,
+    'citizen_cnic': citizen.cnic,
+    'criminal_cnic': '42301-9876543-2',
+})
+with open(os.path.join(OUT, 'cert.json'), 'w') as fh:
+    json.dump(info, fh, indent=2)
+print('DEMO', json.dumps(info))
