@@ -1,0 +1,139 @@
+[2026-11-05 23:16:13,356] INFO face_verification: Loaded 102 NADRA embeddings from disk.
+[2026-11-05 23:16:13,357] INFO face_verification: Search matrix built: shape=(102, 512)  dtype=float32
+31 objects imported automatically (use -v 2 for details).
+
+  [CREATED] Ghulam Sarwar (35202-1234567-1)
+  [CREATED] Shahbaz Hussain (42301-9876543-2)
+  [CREATED] Pervez Khan (34101-5551234-3)
+  [CREATED] Rashid Mehmood (38403-7654321-4)
+  [CREATED] Zulfiqar Ali (35401-1122334-5)
+  [CREATED] Imtiaz Butt (36502-4433221-6)
+  [CREATED] Naeem Abbas (35202-6677889-7)
+  [CREATED] Tariq Mahmood (31303-2244668-8)
+  [CREATED] Waseem Akram Baloch (42201-3344556-9)
+  [CREATED] Khalid Pervez (35201-9988776-0)
+  [CREATED] Unverified Individual (45208-3456710-3)
+  [CREATED] Unverified Individual (45208-7894506-7)
+
+Seeding complete!
+   Created  : 12
+   Updated  : 0
+   Total DB : 12 records
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c1@example.test
+Subject: Application Submitted Successfully
+Body:    Your police verification application (ID: PKV-2026-723129) has been submitted and is under review.
+Ref ID:  PKV-2026-723129
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c1@example.test
+Subject: Police Staff Review Complete
+Body:    Police staff has reviewed your application PKV-2026-723129. Remarks: Documents verified..
+Ref ID:  PKV-2026-723129
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c1@example.test
+Subject: Application Approved by Police Authority
+Body:    Congratulations! Your application PKV-2026-723129 has been approved. A challan will be generated shortly.
+Ref ID:  PKV-2026-723129
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c1@example.test
+Subject: Payment Challan Generated
+Body:    A challan (No: CHN-2026-719201) of PKR 650.0 has been generated for your application PKV-2026-723129. Please complete the payment to receive your certificate.
+Ref ID:  PKV-2026-723129
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c1@example.test
+Subject: Payment Confirmed
+Body:    Payment for application PKV-2026-723129 has been confirmed. Your verification certificate will be issued shortly.
+Ref ID:  PKV-2026-723129
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c1@example.test
+Subject: Certificate Ready for Download
+Body:    Your Police Verification Certificate (No: CERT-2026-469416) for application PKV-2026-723129 is ready. Please log in to download it.
+Ref ID:  PKV-2026-723129
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c2@example.test
+Subject: Application Submitted Successfully
+Body:    Your police verification application (ID: PKV-2026-490149) has been submitted and is under review.
+Ref ID:  PKV-2026-490149
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c2@example.test
+Subject: Police Staff Review Complete
+Body:    Police staff has reviewed your application PKV-2026-490149. Remarks: Documents verified..
+Ref ID:  PKV-2026-490149
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c2@example.test
+Subject: Application Approved by Police Authority
+Body:    Congratulations! Your application PKV-2026-490149 has been approved. A challan will be generated shortly.
+Ref ID:  PKV-2026-490149
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c2@example.test
+Subject: Payment Challan Generated
+Body:    A challan (No: CHN-2026-968975) of PKR 650.0 has been generated for your application PKV-2026-490149. Please complete the payment to receive your certificate.
+Ref ID:  PKV-2026-490149
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c3@example.test
+Subject: Application Submitted Successfully
+Body:    Your police verification application (ID: PKV-2026-183595) has been submitted and is under review.
+Ref ID:  PKV-2026-183595
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c3@example.test
+Subject: Police Staff Review Complete
+Body:    Police staff has reviewed your application PKV-2026-183595. Remarks: Documents verified..
+Ref ID:  PKV-2026-183595
+============================================================
+
+
+============================================================
+[EMAIL NOTIFICATION]
+To:      c4@example.test
+Subject: Application Submitted Successfully
+Body:    Your police verification application (ID: PKV-2026-903945) has been submitted and is under review.
+Ref ID:  PKV-2026-903945
+============================================================
+
+SEEDED {"certificate_number": "CERT-2026-469416", "certificate_hash": "21a0fa32a5c2bba0faeca02ef78338d7ca3c1f8fd3c3fed51e336777eae4e38c", "staff_cnic": "00000-0000009-9", "authority_cnic": "00000-0000008-8", "admin_cnic": "00000-0000007-7", "citizen_cnic": "42101-0000001-1", "applications": [{"id": 1, "tracking_id": "PKV-2026-723129", "status": "COMPLETED", "citizen": "Shahid Ali"}, {"id": 2, "tracking_id": "PKV-2026-490149", "status": "PAYMENT_PENDING", "citizen": "Tahir Raza"}, {"id": 3, "tracking_id": "PKV-2026-183595", "status": "FORWARDED_TO_ADMIN", "citizen": "Mohsin Raza"}, {"id": 4, "tracking_id": "PKV-2026-903945", "status": "PENDING", "citizen": "Ayesha Khan"}], "criminal_cnic": "42301-9876543-2"}

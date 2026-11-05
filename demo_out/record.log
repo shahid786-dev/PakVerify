@@ -1,0 +1,10 @@
+{
+  "page_ready": 2.48,
+  "verified_submit": 4.69,
+  "verified_result": 5.72,
+  "verified_end": 9.94,
+  "second_ready": 11.19,
+  "tampered_submit": 13.33,
+  "tampered_result": 14.36,
+  "tampered_end": 18.56
+}

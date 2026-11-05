@@ -1,0 +1,47 @@
+[2026-11-05 23:16:11,676] INFO face_verification: Loaded 102 NADRA embeddings from disk.
+[2026-11-05 23:16:11,676] INFO face_verification: Search matrix built: shape=(102, 512)  dtype=float32
+Operations to perform:
+  Apply all migrations: admin, applications, audit, auth, blockchain, chatbot, contenttypes, criminals, face_verification, incidents, nadra, notifications, sessions, users
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying applications.0001_initial... OK
+  Applying applications.0002_initial... OK
+  Applying applications.0003_alter_document_document_type... OK
+  Applying applications.0004_certificate_blockchain_transaction_hash_and_more... OK
+  Applying applications.0005_alter_application_status... OK
+  Applying applications.0006_application_applicant_province... OK
+  Applying applications.0007_application_admin_decided_at_and_more... OK
+  Applying audit.0001_initial... OK
+  Applying audit.0002_initial... OK
+  Applying audit.0003_auditlog_block_hash_auditlog_block_index_and_more... OK
+  Applying blockchain.0001_initial... OK
+  Applying blockchain.0002_alter_blockchainblock_action_type_and_more... OK
+  Applying blockchain.0003_ethereumanchor... OK
+  Applying chatbot.0001_initial... OK
+  Applying criminals.0001_initial... OK
+  Applying criminals.0002_criminalrecord_arrest_date_criminalrecord_created_at_and_more... OK
+  Applying face_verification.0001_initial... OK
+  Applying face_verification.0002_faceverificationreport_matched_address_and_more... OK
+  Applying incidents.0001_initial... OK
+  Applying incidents.0002_alter_complaint_citizen... OK
+  Applying nadra.0001_initial... OK
+  Applying nadra.0002_nadrarecord_face_embedding... OK
+  Applying notifications.0001_initial... OK
+  Applying sessions.0001_initial... OK
