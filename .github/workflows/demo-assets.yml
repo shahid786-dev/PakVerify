@@ -15,7 +15,7 @@ permissions:
 jobs:
   assets:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       DJANGO_DEBUG: 'true'
       DJANGO_ENV: local
@@ -51,7 +51,7 @@ jobs:
           mkdir -p demo_out
           cd backend
           python manage.py migrate --noinput > ../demo_out/migrate.log 2>&1
-          python manage.py shell < ../demo/seed_and_issue.py 2>&1 | tee ../demo_out/seed.log
+          python manage.py shell < ../demo/seed_rich.py 2>&1 | tee ../demo_out/seed.log
           cd ..
           python demo/tamper.py demo_out 2>&1 | tee demo_out/tamper.log
 
@@ -62,11 +62,12 @@ jobs:
           cd frontend && (VITE_API_BASE_URL=http://localhost:8000 npx vite --port 5173 --strictPort > ../demo_out/frontend.log 2>&1 &) && cd ..
           for i in $(seq 1 60); do curl -sf http://localhost:5173 >/dev/null && curl -s -o /dev/null http://localhost:8000/api/public/stats/ && break; sleep 2; done
           python demo/record.py demo_out 2>&1 | tee demo_out/record.log
+          python demo/record_hd.py demo_out 2>&1 | tee demo_out/record_hd.log
 
       - name: Commit outputs
         if: always()
         run: |
-          rm -rf demo_out/state.json demo_out/vid demo_out/*.onnx demo_out/*.onnx.json
+          rm -rf demo_out/state*.json demo_out/vid demo_out/*.onnx demo_out/*.onnx.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f demo_out
