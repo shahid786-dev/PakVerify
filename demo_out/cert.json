@@ -1,0 +1,35 @@
+{
+  "certificate_number": "CERT-2026-165778",
+  "certificate_hash": "f17c0e713dad93f3d6972b299d1cd9bbc928af2aa59a5ad5b04e0201e19f5914",
+  "staff_cnic": "00000-0000009-9",
+  "authority_cnic": "00000-0000008-8",
+  "admin_cnic": "00000-0000007-7",
+  "citizen_cnic": "42101-0000001-1",
+  "applications": [
+    {
+      "id": 1,
+      "tracking_id": "PKV-2026-297041",
+      "status": "COMPLETED",
+      "citizen": "Shahid Ali"
+    },
+    {
+      "id": 2,
+      "tracking_id": "PKV-2026-869577",
+      "status": "PAYMENT_PENDING",
+      "citizen": "Tahir Raza"
+    },
+    {
+      "id": 3,
+      "tracking_id": "PKV-2026-932640",
+      "status": "FORWARDED_TO_ADMIN",
+      "citizen": "Mohsin Raza"
+    },
+    {
+      "id": 4,
+      "tracking_id": "PKV-2026-188483",
+      "status": "PENDING",
+      "citizen": "Ayesha Khan"
+    }
+  ],
+  "criminal_cnic": "42301-9876543-2"
+}

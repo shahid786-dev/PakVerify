@@ -1,0 +1,59 @@
+{
+  "chat_citizen": {
+    "dashboard": 3.07,
+    "panel": {
+      "x": 1512,
+      "y": 612.625,
+      "width": 384,
+      "height": 371.375
+    },
+    "chat_open": 4.63,
+    "track_sent": 6.34,
+    "track_answered": 9.54,
+    "denied_sent": 11.43,
+    "denied_answered": 14.63
+  },
+  "chat_staff": {
+    "dashboard": 3.2,
+    "panel": {
+      "x": 1512,
+      "y": 577.78125,
+      "width": 384,
+      "height": 406.21875
+    },
+    "chat_open": 4.74,
+    "lookup_sent": 6.66,
+    "lookup_answered": 9.86,
+    "app_sent": 11.22,
+    "app_answered": 14.42
+  },
+  "chat_admin": {
+    "dashboard": 3.09,
+    "panel": {
+      "x": 1512,
+      "y": 577.78125,
+      "width": 384,
+      "height": 406.21875
+    },
+    "chat_open": 4.62,
+    "cert_sent": 6.1,
+    "cert_answered": 9.3
+  },
+  "admin": {
+    "overview": 4.0,
+    "Applications": 6.94,
+    "Staff Management": 9.82,
+    "Analytics": 12.92,
+    "Audit Logs": 15.86
+  },
+  "chain": {
+    "stats": 4.12,
+    "ledger": 6.74,
+    "history": 9.78,
+    "history_scrolled": 12.61
+  },
+  "chain_bad": {
+    "compromised": 4.0,
+    "issues": 6.44
+  }
+}
