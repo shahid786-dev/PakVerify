@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/home/runner/work/PakVerify/PakVerify/demo/record2.py", line 142, in <module>
-    ('track', f"Track my application {info['tracking_id']}"),
-                                      ~~~~^^^^^^^^^^^^^^^
-KeyError: 'tracking_id'

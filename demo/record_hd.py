@@ -145,11 +145,36 @@ def chain(page, mark, m):
     mark('history_scrolled')
 
 
+def chain_bad(page, mark, m):
+    page.goto(BASE + '/blockchain')
+    page.wait_for_selector('text=Chain Integrity Compromised', timeout=30000)
+    page.wait_for_timeout(3200)
+    mark('compromised')
+    page.mouse.wheel(0, 320)
+    page.wait_for_timeout(2400)
+    mark('issues')
+
+
+# Simulates someone editing one ledger row directly in the database (bypassing
+# the model, which refuses changes). The explorer must detect it.
+TAMPER_LEDGER = '''
+from blockchain.models import BlockchainBlock
+b = BlockchainBlock.objects.exclude(action_type='GENESIS').order_by('block_index')[2]
+BlockchainBlock.objects.filter(pk=b.pk).update(payload_json=b.payload_json.replace('"', "'", 2))
+print('LEDGER_EDITED', b.block_index, b.action_type)
+'''
+
+
 with sync_playwright() as p:
     browser = p.chromium.launch()
     for name, who, fn in (('chat_citizen', 'citizen', chat_citizen), ('chat_staff', 'staff', chat_staff),
                           ('chat_admin', 'admin', chat_admin), ('admin', 'admin', admin),
-                          ('chain', 'admin', chain)):
+                          ('chain', 'admin', chain), ('chain_bad', 'admin', chain_bad)):
+        if name == 'chain_bad':
+            import subprocess
+            res = subprocess.run([sys.executable, 'manage.py', 'shell', '-c', TAMPER_LEDGER],
+                                 cwd='backend', capture_output=True, text=True)
+            (OUT / 'ledger_edit.log').write_text(res.stdout + res.stderr)
         try:
             scene(browser, name, who, fn)
         except Exception as exc:

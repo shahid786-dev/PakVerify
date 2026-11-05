@@ -62,7 +62,6 @@ jobs:
           cd frontend && (VITE_API_BASE_URL=http://localhost:8000 npx vite --port 5173 --strictPort > ../demo_out/frontend.log 2>&1 &) && cd ..
           for i in $(seq 1 60); do curl -sf http://localhost:5173 >/dev/null && curl -s -o /dev/null http://localhost:8000/api/public/stats/ && break; sleep 2; done
           python demo/record.py demo_out 2>&1 | tee demo_out/record.log
-          python demo/record2.py demo_out 2>&1 | tee demo_out/record2.log
           python demo/record_hd.py demo_out 2>&1 | tee demo_out/record_hd.log
 
       - name: Commit outputs
