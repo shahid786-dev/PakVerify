@@ -1,9 +1,0 @@
-/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/fitz/__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
-  warnings.warn(
-Traceback (most recent call last):
-  File "/home/runner/work/PakVerify/PakVerify/demo/tamper.py", line 14, in <module>
-    doc = fitz.open(orig)
-          ^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/pymupdf/__init__.py", line 3022, in __init__
-    raise FileNotFoundError(f"no such file: '{filename}'")
-pymupdf.FileNotFoundError: no such file: 'demo_out/original.pdf'

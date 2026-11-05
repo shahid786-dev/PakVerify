@@ -53,14 +53,14 @@ admin = user('00000-0000007-7', 'Admin Demo', 'SUPER_ADMIN', 'admin@example.test
 
 
 def as_user(u):
-    c = APIClient()
+    c = APIClient(HTTP_HOST='localhost')
     c.force_authenticate(u)
     return c
 
 
 def ok(res, step):
     if res.status_code >= 400:
-        raise SystemExit(f'{step} failed {res.status_code}: {getattr(res, "data", res.content)}')
+        raise SystemExit(f'{step} failed {res.status_code}: {str(getattr(res, "data", None) or res.content[:400])}')
     return res
 
 

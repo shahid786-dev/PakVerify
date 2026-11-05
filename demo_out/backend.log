@@ -1,6 +1,0 @@
-[2026-11-05 22:25:20,655] INFO face_verification: Loaded 102 NADRA embeddings from disk.
-[2026-11-05 22:25:20,656] INFO face_verification: Search matrix built: shape=(102, 512)  dtype=float32
-[2026-11-05 22:25:21,111] INFO face_verification: Loaded 102 NADRA embeddings from disk.
-[2026-11-05 22:25:21,112] INFO face_verification: Search matrix built: shape=(102, 512)  dtype=float32
-[2026-11-05 22:25:21,117] INFO django.utils.autoreload: Watching for file changes with StatReloader
-[2026-11-05 22:25:22,349] INFO django.server: "GET /api/public/stats/ HTTP/1.1" 200 23
